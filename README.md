@@ -14,6 +14,11 @@
 Инструкция к заданию и его описание находится по ссылке https://github.com/izhigalko/otus-homework-istio
 
 ------------------------------------------------------------------
+Результат:
+![kiali-map](kiali-map-result.png)
+
+
+
 
 ### Примечания по решению:
 
@@ -31,7 +36,6 @@ minikube start --cpus=4 --memory=8g --vm-driver=hyperkit --cni=flannel --kuberne
 ```
 
 Создать неймспейсы для операторов:
-
 ```shell script
 kubectl apply -f namespaces.yaml
 ```
@@ -40,66 +44,24 @@ kubectl apply -f namespaces.yaml
 
 Jaeger - решение трассировки. Компоненты Istio, такие как: sidecar-контейнер, gateway, отправляют данные запросов в систему. Таким образом получается полная трассировка запроса.
 
-Добавить репозиторий в Helm:
 ```shell script
 helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
 helm repo update
-```
-
-Установить оператор, разворачивающий Jaeger, и развернуть Jaeger:
-```shell script
 helm install --version "2.19.0" -n jaeger-operator -f jaeger/operator-values.yaml jaeger-operator jaegertracing/jaeger-operator
 kubectl apply -f jaeger/jaeger.yaml
 ```
-Проверить состояние Jaeger:
-```shell script
-kubectl get po -n jaeger -l app.kubernetes.io/instance=jaeger
-```
-
-Открыть web-интерфейс Jaeger:
-```shell script
-minikube service -n jaeger jaeger-query-nodeport
-```
-![web-интерфейс Jaeger](screenshots/jaeger.png)
 
 ### Разворачиваем Prometheus
 
 Prometheus - система мониторинга. С помощью неё собираются метрики Service mesh.
 
-Добавить репозиторий в Helm:
 ```shell script
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo add stable https://charts.helm.sh/stable
 helm repo update
-```
-
-Развернуть решение по мониторингу на основе Prometheus:
-```shell script
 helm install --version "13.7.2" -n monitoring -f prometheus/operator-values.yaml prometheus prometheus-community/kube-prometheus-stack
-```
-
-Проверить состояние компонентов мониторинга:
-```shell script
-kubectl get po -n monitoring
-```
-
-Добавить сервис типа NodePort для прямого доступа к Prometheus и Grafana:
-```shell script
 kubectl apply -f prometheus/monitoring-nodeport.yaml
 ```
-
-Открыть web-интерфейс Grafana:
-```shell script
-minikube service -n monitoring prometheus-grafana-nodeport
-```
-![web-интерфейс Grafana](screenshots/grafana.png)
-
-Открыть web-интерфейс Prometheus:
-```shell script
-minikube service -n monitoring prom-prometheus-nodeport
-```
-![web-интерфейс Prometheus](screenshots/prometheus.png)
-
 
 ### Разворачиваем Istio
 
@@ -111,38 +73,16 @@ istioctl operator init --watchedNamespaces istio-system --operatorNamespace isti
 kubectl apply -f istio/istio.yaml
 ```
 
-Проверить состояние Istio:
-```shell script
-kubectl get all -n istio-system -l istio.io/rev=default
-```
-
 ### Устанавливаем Kiali
 
 Kiali - доска управления Service mesh
 
-Добавить репозиторий в Helm и установить Kiali Operator, разворачивающий Kiali:
 ```shell script
 helm repo add kiali https://kiali.org/helm-charts
 helm repo update
-```
-
-Установить Kiali Operator, разворачивающий Kiali, и развернуть Kiali
-```shell script
 helm install --version "1.29.1" -n kiali-operator kiali-operator kiali/kiali-operator
 kubectl apply -f kiali/kiali.yaml
 ```
-
-Проверить состояние Kiali:
-```shell script
-kubectl get po -n kiali -l app.kubernetes.io/name=kiali
-```
-
-Открыть web-интерфейс Kiali:
-```shell script
-minikube service -n kiali kiali-nodeport
-```
-![web-интерфейс Prometheus](screenshots/kiali.png)
-
 
 ### Развернуть приложение
 
@@ -150,3 +90,37 @@ minikube service -n kiali kiali-nodeport
 kubectl apply -f app/my-app.yaml
 kubectl apply -f app/istio-settings.yaml
 ```
+
+Делаем запрос к приложению:
+```shell script
+curl $(minikube service my-app --url)
+```
+
+### Web-интерфейсы инструментов
+
+Открыть web-интерфейс Jaeger:
+```shell script
+minikube service -n jaeger jaeger-query-nodeport
+```
+![web-интерфейс Jaeger](screenshots/jaeger.png)
+
+
+Открыть web-интерфейс Grafana:
+```shell script
+minikube service -n monitoring prometheus-grafana-nodeport
+```
+![web-интерфейс Grafana](screenshots/grafana.png)
+
+
+Открыть web-интерфейс Prometheus:
+```shell script
+minikube service -n monitoring prom-prometheus-nodeport
+```
+![web-интерфейс Prometheus](screenshots/prometheus.png)
+
+
+Открыть web-интерфейс Kiali:
+```shell script
+minikube service -n kiali kiali-nodeport
+```
+![web-интерфейс Prometheus](screenshots/kiali.png)
